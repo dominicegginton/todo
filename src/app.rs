@@ -1,4 +1,5 @@
 use crate::item::Item;
+use std::env;
 use std::error::{self};
 
 pub enum Mode {
@@ -10,6 +11,7 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 pub struct App {
     pub running: bool,
+    pub home_file: bool,
     pub mode: Mode,
     pub cursor_position: usize,
     pub input: String,
@@ -21,6 +23,7 @@ impl App {
     pub const fn new() -> Self {
         Self {
             running: true,
+            home_file: true,
             mode: Mode::Normal,
             input: String::new(),
             items: Vec::new(),
@@ -100,15 +103,28 @@ impl App {
 
     pub fn write_items_to_file(&self) {
         let serialized = serde_json::to_string(&self.items).unwrap();
-        std::fs::write("todo.json", serialized).unwrap();
+        let path = if self.home_file {
+            env::var_os("HOME").unwrap().to_str().unwrap().to_string() + "/todo.json"
+        } else {
+            "todo.json".to_string()
+        };
+        std::fs::write(path, serialized).unwrap();
     }
 
     pub fn read_items_from_file(&mut self) {
         let file = std::fs::read_to_string("todo.json");
-
         if let Ok(content) = file {
             let items: Vec<Item> = serde_json::from_str(&content).unwrap();
             self.items = items;
+        } else {
+            let file = std::fs::read_to_string(
+                env::var_os("HOME").unwrap().to_str().unwrap().to_string() + "/todo.json",
+            );
+            if let Ok(content) = file {
+                self.home_file = true;
+                let items: Vec<Item> = serde_json::from_str(&content).unwrap();
+                self.items = items;
+            }
         }
     }
 }
