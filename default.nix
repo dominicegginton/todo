@@ -9,7 +9,7 @@ with rustPlatform;
     pname = "todo";
     version = "0.1.0";
     src = ./.;
-    cargoSha256 = "sha256-E6B0JjZlgj9o0gwwSNPZr1WWpyehQ0IdI94qFxJXteQ=";
+    cargoSha256 = "sha256-AcZcnDZrIso+TKDCKnXDXbPgjKG4SUhsBLq1li7hRsI=";
 
     nativeBuildInputs = with pkgs; [
       rustc # rust compiler
