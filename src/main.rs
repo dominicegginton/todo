@@ -1,3 +1,4 @@
+use argh::FromArgs;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io;
@@ -6,9 +7,18 @@ use todo::event::{Event, EventHandler};
 use todo::handler::handle_key_events;
 use todo::tui::Tui;
 
-fn main() -> AppResult<()> {
-    let mut app = App::new();
+#[derive(FromArgs)]
+/// A suckless todo app.
+struct AppArgs {
+    #[argh(option, short = 'l', default = "false")]
+    /// use a local list.
+    local_list: bool,
+}
 
+fn main() -> AppResult<()> {
+    let args: AppArgs = argh::from_env();
+    let mut app = App::new();
+    app.local_list = args.local_list;
     app.read_items_from_file();
 
     let backend = CrosstermBackend::new(io::stderr());

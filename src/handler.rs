@@ -13,11 +13,14 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             KeyCode::Down | KeyCode::Char('j') => {
                 app.move_selection_down();
             }
-            KeyCode::Enter => {
+            KeyCode::Enter | KeyCode::Char(' ') => {
                 app.toggle_selection_complete();
             }
             KeyCode::Char('d') => {
                 app.mode = Mode::Confirmation;
+            }
+            KeyCode::Char('D') => {
+                app.delete_selected();
             }
             KeyCode::Char('q') => {
                 app.running = false;

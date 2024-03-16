@@ -2,6 +2,8 @@ use crate::item::Item;
 use std::env;
 use std::error::{self};
 
+static FILE_NAME: &str = "todo.json";
+
 pub enum Mode {
     Normal,
     Insert,
@@ -12,24 +14,24 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 pub struct App {
     pub running: bool,
+    pub local_list: bool,
     pub mode: Mode,
     pub cursor_position: usize,
     pub input: String,
     pub selected_item: usize,
     pub items: Vec<Item>,
-    home_file: bool,
 }
 
 impl App {
     pub const fn new() -> Self {
         Self {
             running: true,
+            local_list: false,
             mode: Mode::Normal,
             input: String::new(),
             cursor_position: 0,
             selected_item: 0,
             items: Vec::new(),
-            home_file: true,
         }
     }
 
@@ -47,7 +49,6 @@ impl App {
 
     pub fn enter_char(&mut self, new_char: char) {
         self.input.insert(self.cursor_position, new_char);
-
         self.move_cursor_right();
     }
 
@@ -56,10 +57,8 @@ impl App {
         if is_not_cursor_leftmost {
             let current_index = self.cursor_position;
             let from_left_to_current_index = current_index - 1;
-
             let before_char_to_delete = self.input.chars().take(from_left_to_current_index);
             let after_char_to_delete = self.input.chars().skip(current_index);
-
             self.input = before_char_to_delete.chain(after_char_to_delete).collect();
             self.move_cursor_left();
         }
@@ -76,7 +75,7 @@ impl App {
     pub fn submit_input(&mut self) {
         let input_string = self.input.trim().to_string();
         let new_item: Item = Item::new(input_string.clone());
-        self.items.push(new_item);
+        self.items.insert(0, new_item);
         self.input.clear();
         self.reset_cursor();
     }
@@ -123,30 +122,29 @@ impl App {
         }
     }
 
+    fn items_file(&self) -> String {
+        match self.local_list {
+            true => FILE_NAME.to_string(),
+            false => {
+                let home = env::var("HOME").clone().unwrap_or_default();
+                if !home.is_empty() {
+                    return format!("{}/{}", home, FILE_NAME);
+                }
+                FILE_NAME.to_string()
+            }
+        }
+    }
+
     pub fn write_items_to_file(&self) {
         let serialized = serde_json::to_string(&self.items).unwrap();
-        let path = if self.home_file {
-            env::var_os("HOME").unwrap().to_str().unwrap().to_string() + "/todo.json"
-        } else {
-            "todo.json".to_string()
-        };
-        std::fs::write(path, serialized).unwrap();
+        std::fs::write(self.items_file(), serialized).unwrap();
     }
 
     pub fn read_items_from_file(&mut self) {
-        let file = std::fs::read_to_string("todo.json");
-        if let Ok(content) = file {
+        if let Ok(content) = std::fs::read_to_string(self.items_file()) {
+            self.local_list = false;
             let items: Vec<Item> = serde_json::from_str(&content).unwrap();
             self.items = items;
-        } else {
-            let file = std::fs::read_to_string(
-                env::var_os("HOME").unwrap().to_str().unwrap().to_string() + "/todo.json",
-            );
-            if let Ok(content) = file {
-                self.home_file = true;
-                let items: Vec<Item> = serde_json::from_str(&content).unwrap();
-                self.items = items;
-            }
         }
     }
 }
