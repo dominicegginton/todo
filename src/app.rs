@@ -5,30 +5,31 @@ use std::error::{self};
 pub enum Mode {
     Normal,
     Insert,
+    Confirmation,
 }
 
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 pub struct App {
     pub running: bool,
-    pub home_file: bool,
     pub mode: Mode,
     pub cursor_position: usize,
     pub input: String,
-    pub items: Vec<Item>,
     pub selected_item: usize,
+    pub items: Vec<Item>,
+    home_file: bool,
 }
 
 impl App {
     pub const fn new() -> Self {
         Self {
             running: true,
-            home_file: true,
             mode: Mode::Normal,
             input: String::new(),
-            items: Vec::new(),
             cursor_position: 0,
             selected_item: 0,
+            items: Vec::new(),
+            home_file: true,
         }
     }
 
@@ -81,13 +82,34 @@ impl App {
     }
 
     pub fn move_selection_up(&mut self) {
-        let new_selected_item = self.selected_item.saturating_sub(1);
+        if self.items.is_empty() {
+            return;
+        }
+        if self.selected_item == self.items.len().saturating_sub(1) {
+            return;
+        }
+        let new_selected_item = self.selected_item.saturating_add(1);
         self.selected_item = new_selected_item;
     }
 
     pub fn move_selection_down(&mut self) {
-        let new_selected_item = self.selected_item.saturating_add(1);
+        if self.items.is_empty() {
+            return;
+        }
+        if self.selected_item == 0 {
+            return;
+        }
+        let new_selected_item = self.selected_item.saturating_sub(1);
         self.selected_item = new_selected_item;
+    }
+
+    pub fn toggle_selection_complete(&mut self) {
+        if self.items.is_empty() {
+            return;
+        }
+
+        let item = &mut self.items[self.selected_item];
+        item.complete = !item.complete;
     }
 
     pub fn delete_selected(&mut self) {

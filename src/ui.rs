@@ -2,84 +2,102 @@ use crate::app::{App, Mode};
 use once_cell::sync::Lazy;
 use ratatui::{
     prelude::*,
-    widgets::{Block, Borders, List, ListDirection, ListItem, ListState, Paragraph},
+    widgets::{Block, Borders, List, ListDirection, ListItem, ListState, Paragraph}
 };
 
 static LIST_STATE: Lazy<ListState> = Lazy::new(|| ListState::default());
 
-pub fn render(app: &mut App, frame: &mut Frame) {
-    let vertical = Layout::vertical([
-        Constraint::Length(1),
-        Constraint::Length(3),
-        Constraint::Min(1),
-    ]);
-    let [help_area, input_area, list_area] = vertical.areas(frame.size());
+fn layout() -> Layout {
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Min(1),
+                Constraint::Length(3),
+                Constraint::Length(1),
+            ]
+            .as_ref(),
+        )
+}
 
-    let (msg, style) = match app.mode {
-        Mode::Normal => (
-            vec![
-                "Press ".into(),
-                "q".bold(),
-                " to save & exit, ".into(),
-                "i".bold(),
-                " to start editing, ".bold(),
-                "j".bold(),
-                " move selection down, ".into(),
-                "k".bold(),
-                " move selection up, ".into(),
-                "Enter".bold(),
-                " to delete the selected item".into(),
-            ],
-            Style::default().add_modifier(Modifier::RAPID_BLINK),
+fn status_line(app: &App) -> Paragraph {
+    match app.mode {
+        Mode::Normal => Paragraph::new("NORMAL").set_style(
+            Style::default()
+                .bg(Color::Blue)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD),
         ),
-        Mode::Insert => (
-            vec![
-                "Press ".into(),
-                "Esc".bold(),
-                " to go back to normal mode or, ".into(),
-                "Enter".bold(),
-                " to add a new item.".into(),
-            ],
-            Style::default(),
+        Mode::Confirmation => Paragraph::new("CONFIRMATION | Delete? (y/n)").set_style(
+            Style::default()
+                .bg(Color::Red)
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
         ),
-    };
-    let text = Text::from(Line::from(msg)).patch_style(style);
-    let help_message = Paragraph::new(text);
-    frame.render_widget(help_message, help_area);
+        Mode::Insert => Paragraph::new("INSERT | [Enter] Submit - [Esc] Cancel").set_style(
+            Style::default()
+                .bg(Color::Blue)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD),
+        ),
+    }
+}
 
-    let input = Paragraph::new(app.input.as_str())
+fn input(app: &App) -> Paragraph {
+    Paragraph::new(app.input.as_str())
         .style(match app.mode {
             Mode::Normal => Style::default(),
-            Mode::Insert => Style::default().fg(Color::Yellow),
+            Mode::Confirmation => Style::default(),
+            Mode::Insert => Style::default().fg(Color::Blue),
         })
-        .block(Block::default().borders(Borders::ALL).title("Input"));
-    frame.render_widget(input, input_area);
+        .block(Block::default().borders(Borders::ALL))
+}
 
-    let list_items: Vec<ListItem> = app
-        .items
-        .iter()
-        .enumerate()
-        .map(|(i, m)| {
-            let content = Line::from(Span::raw(format!("{i}: {m}")));
-            ListItem::new(content)
-        })
-        .collect();
+fn list(app: &App) -> List {
+    let mut items = Vec::new();
+    for item in &app.items {
+        let list_item = match item.complete {
+            true => ListItem::new(format!("{}", item.content)).set_style(
+                Style::default()
+                    .fg(Color::White)
+                    .bg(Color::Green)
+            ),
+            false => ListItem::new(format!("{}", item.content)),
+        };
+        items.push(list_item);
+    }
 
-    let list = List::new(list_items)
-        .block(Block::default().borders(Borders::ALL).title("Inputs"))
+    List::new(items)
+        .block(Block::default().borders(Borders::ALL))
         .style(Style::default().fg(Color::White))
-        .highlight_style(Style::default().add_modifier(Modifier::ITALIC))
-        .highlight_symbol(">>")
-        .repeat_highlight_symbol(true)
-        .direction(ListDirection::TopToBottom);
+        .highlight_style(match app.mode {
+            Mode::Normal => Style::default()
+                .fg(Color::Black)
+                .bg(Color::Blue)
+                .set_style(Modifier::BOLD),
+            Mode::Confirmation => Style::default().fg(Color::White),
+            Mode::Insert => Style::default(),
+        })
+        .direction(ListDirection::BottomToTop)
+}
 
+fn list_state(app: &App) -> ListState {
     let mut state = LIST_STATE.clone();
     state.select(Some(app.selected_item));
+    state
+}
 
-    frame.render_stateful_widget(list, list_area, &mut state);
+pub fn render(app: &mut App, frame: &mut Frame) {
+    let [list_area, input_area, status_area] = layout().areas(frame.size());
+    let mut list_state = list_state(&app);
+
+    frame.render_widget(status_line(&app), status_area);
+    frame.render_stateful_widget(list(&app), list_area, &mut list_state);
+    frame.render_widget(input(&app), input_area);
 
     match app.mode {
         Mode::Normal => {}
+        Mode::Confirmation => {}
         Mode::Insert => {
             #[allow(clippy::cast_possible_truncation)]
             frame.set_cursor(

@@ -14,7 +14,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.move_selection_down();
             }
             KeyCode::Enter => {
-                app.delete_selected();
+                app.toggle_selection_complete();
+            }
+            KeyCode::Char('d') => {
+                app.mode = Mode::Confirmation;
             }
             KeyCode::Char('q') => {
                 app.running = false;
@@ -22,6 +25,12 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             }
             _ => {}
         },
+        Mode::Confirmation => {
+            if key_event.code == KeyCode::Char('y') {
+                app.delete_selected();
+            }
+            app.mode = Mode::Normal;
+        }
         Mode::Insert if key_event.kind == KeyEventKind::Press => match key_event.code {
             KeyCode::Enter => {
                 app.submit_input();
