@@ -5,6 +5,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     match app.mode {
         Mode::Normal => match key_event.code {
             KeyCode::Char('i') => {
+                app.selected_item = 0;
                 app.mode = Mode::Insert;
             }
             KeyCode::Up | KeyCode::Char('k') => {
@@ -37,28 +38,6 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             }
             app.mode = Mode::Normal;
         }
-        Mode::Edit if key_event.kind == KeyEventKind::Press => match key_event.code {
-            KeyCode::Enter => {
-                app.submit_input();
-            }
-            KeyCode::Char(to_insert) => {
-                app.enter_char(to_insert);
-            }
-            KeyCode::Backspace => {
-                app.delete_char();
-            }
-            KeyCode::Left => {
-                app.move_cursor_left();
-            }
-            KeyCode::Right => {
-                app.move_cursor_right();
-            }
-            KeyCode::Esc => {
-                app.mode = Mode::Normal;
-            }
-            _ => {}
-        }
-        Mode::Edit => {}
         Mode::Insert if key_event.kind == KeyEventKind::Press => match key_event.code {
             KeyCode::Enter => {
                 app.submit_input();

@@ -14,31 +14,37 @@ fn layout() -> Layout {
 }
 
 fn status_line(app: &App) -> Paragraph {
-    match app.mode {
-        Mode::Normal => Paragraph::new("NORMAL").set_style(
-            Style::default()
-                .bg(Color::Blue)
-                .fg(Color::Black)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Mode::Confirmation => Paragraph::new("CONFIRMATION | Delete? (y/n)").set_style(
-            Style::default()
-                .bg(Color::Red)
-                .fg(Color::White)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Mode::Edit => Paragraph::new(format!("- {}", app.input.as_str()))
-            .style(Style::default().fg(Color::Black).bg(Color::White)),
-        Mode::Insert => Paragraph::new(format!("+ {}", app.input.as_str()))
-            .style(Style::default().fg(Color::Black).bg(Color::White)),
-    }
+    let list_widget_string = match app.local_list {
+        true => "L",
+        false => "G",
+    };
+    let mode_widget_string = match app.mode {
+        Mode::Normal => "NORMAL",
+        _ => "",
+    };
+    Paragraph::new(match app.mode {
+        Mode::Insert => {
+            let cursor = match app.selected_item {
+                0 => "+",
+                _ => "-",
+            };
+            format!(" {} {}", cursor, app.input.as_str())
+        }
+        _ => format!(" {} | {}", list_widget_string, mode_widget_string),
+    })
+    .set_style(match app.mode {
+        Mode::Normal => Style::default().bg(Color::Blue).fg(Color::Black),
+        Mode::Confirmation => Style::default().bg(Color::Red).fg(Color::White),
+        Mode::Insert => Style::default().bg(Color::White).fg(Color::Black),
+    })
 }
 
 fn list(app: &App) -> List {
     let mut items = Vec::new();
     for item in &app.items {
         let list_item = match item.complete {
-            true => ListItem::new(format!("[x] {}", item.content)),
+            true => ListItem::new(format!("[x] {}", item.content))
+                .set_style(Style::default().fg(Color::Blue).set_style(Modifier::BOLD)),
             false => ListItem::new(format!("[ ] {}", item.content)),
         };
         items.push(list_item);
@@ -52,7 +58,6 @@ fn list(app: &App) -> List {
                 .bg(Color::White)
                 .set_style(Modifier::BOLD),
             Mode::Confirmation => Style::default(),
-            Mode::Edit => Style::default(),
             Mode::Insert => Style::default(),
         })
         .direction(ListDirection::BottomToTop)
@@ -74,17 +79,10 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     match app.mode {
         Mode::Normal => {}
         Mode::Confirmation => {}
-        Mode::Edit => {
-            #[allow(clippy::cast_possible_truncation)]
-            frame.set_cursor(
-                status_area.x + app.cursor_position as u16 + 2,
-                status_area.y,
-            );
-        }
         Mode::Insert => {
             #[allow(clippy::cast_possible_truncation)]
             frame.set_cursor(
-                status_area.x + app.cursor_position as u16 + 2,
+                status_area.x + app.cursor_position as u16 + 3,
                 status_area.y,
             );
         }

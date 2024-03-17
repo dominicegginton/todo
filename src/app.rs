@@ -7,7 +7,6 @@ static FILE_NAME: &str = "todo.json";
 pub enum Mode {
     Normal,
     Insert,
-    Edit,
     Confirmation,
 }
 
@@ -78,22 +77,16 @@ impl App {
         if input_string.is_empty() {
             return;
         }
-        match self.mode {
-            Mode::Edit => {
-                let item = &mut self.items[self.selected_item];
-                item.content = input_string;
-                self.mode = Mode::Normal;
-                self.input.clear();
-                self.reset_cursor();
-            }
-            Mode::Insert => {
-                let new_item = Item::new(input_string);
-                self.items.insert(0, new_item);
-                self.input.clear();
-                self.reset_cursor();
-            },
-            _ => {}
+        if self.selected_item > 0 {
+            let item = &mut self.items[self.selected_item];
+            item.content = input_string;
+            self.mode = Mode::Normal;
+        } else {
+            let new_item = Item::new(input_string);
+            self.items.insert(0, new_item);
         }
+        self.input.clear();
+        self.reset_cursor();
     }
 
     pub fn move_selection_up(&mut self) {
@@ -134,7 +127,7 @@ impl App {
         let item = &self.items[self.selected_item];
         self.input = item.content.clone();
         self.cursor_position = self.input.len();
-        self.mode = Mode::Edit;
+        self.mode = Mode::Insert;
     }
 
     pub fn delete_selected(&mut self) {
