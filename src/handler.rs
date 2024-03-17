@@ -16,13 +16,16 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             KeyCode::Enter | KeyCode::Char(' ') => {
                 app.toggle_selection_complete();
             }
+            KeyCode::Char('e') => {
+                app.edit_selected();
+            }
             KeyCode::Char('d') => {
                 app.mode = Mode::Confirmation;
             }
             KeyCode::Char('D') => {
                 app.delete_selected();
             }
-            KeyCode::Char('q') => {
+            KeyCode::Esc | KeyCode::Char('q') => {
                 app.running = false;
                 app.write_items_to_file();
             }
@@ -34,6 +37,28 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             }
             app.mode = Mode::Normal;
         }
+        Mode::Edit if key_event.kind == KeyEventKind::Press => match key_event.code {
+            KeyCode::Enter => {
+                app.submit_input();
+            }
+            KeyCode::Char(to_insert) => {
+                app.enter_char(to_insert);
+            }
+            KeyCode::Backspace => {
+                app.delete_char();
+            }
+            KeyCode::Left => {
+                app.move_cursor_left();
+            }
+            KeyCode::Right => {
+                app.move_cursor_right();
+            }
+            KeyCode::Esc => {
+                app.mode = Mode::Normal;
+            }
+            _ => {}
+        }
+        Mode::Edit => {}
         Mode::Insert if key_event.kind == KeyEventKind::Press => match key_event.code {
             KeyCode::Enter => {
                 app.submit_input();

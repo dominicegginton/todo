@@ -27,6 +27,8 @@ fn status_line(app: &App) -> Paragraph {
                 .fg(Color::White)
                 .add_modifier(Modifier::BOLD),
         ),
+        Mode::Edit => Paragraph::new(format!("- {}", app.input.as_str()))
+            .style(Style::default().fg(Color::Black).bg(Color::White)),
         Mode::Insert => Paragraph::new(format!("+ {}", app.input.as_str()))
             .style(Style::default().fg(Color::Black).bg(Color::White)),
     }
@@ -49,7 +51,8 @@ fn list(app: &App) -> List {
                 .fg(Color::Black)
                 .bg(Color::White)
                 .set_style(Modifier::BOLD),
-            Mode::Confirmation => Style::default().fg(Color::White),
+            Mode::Confirmation => Style::default(),
+            Mode::Edit => Style::default(),
             Mode::Insert => Style::default(),
         })
         .direction(ListDirection::BottomToTop)
@@ -71,6 +74,13 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     match app.mode {
         Mode::Normal => {}
         Mode::Confirmation => {}
+        Mode::Edit => {
+            #[allow(clippy::cast_possible_truncation)]
+            frame.set_cursor(
+                status_area.x + app.cursor_position as u16 + 2,
+                status_area.y,
+            );
+        }
         Mode::Insert => {
             #[allow(clippy::cast_possible_truncation)]
             frame.set_cursor(
