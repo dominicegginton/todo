@@ -1,4 +1,5 @@
-use crate::app::{App, Mode};
+use crate::{app::App, file::FileMode};
+use crate::input::InputMode;
 use once_cell::sync::Lazy;
 use ratatui::{
     prelude::*,
@@ -14,34 +15,30 @@ fn layout() -> Layout {
 }
 
 fn status_line(app: &App) -> Paragraph {
-    let list_widget_string = match app.local_list {
-        true => "L",
-        false => "G",
+    let file_mode = match app.file.mode {
+        FileMode::Local => "L",
+        FileMode::Global => "G"
     };
-    let mode_widget_string = match app.mode {
-        Mode::Normal => "NORMAL",
-        _ => "",
-    };
-    Paragraph::new(match app.mode {
-        Mode::Insert => {
-            let cursor = match app.selected_item {
+
+    Paragraph::new(match app.input.mode {
+        InputMode::Insert => {
+            let cursor = match app.list.selected_item {
                 0 => "+",
                 _ => "-",
             };
-            format!(" {} {}", cursor, app.input.as_str())
+            format!(" {} | {} {}", file_mode, cursor, app.input.input)
         }
-        _ => format!(" {} | {}", list_widget_string, mode_widget_string),
+        _ => format!(" {}", file_mode),
     })
-    .set_style(match app.mode {
-        Mode::Normal => Style::default().bg(Color::Blue).fg(Color::Black),
-        Mode::Confirmation => Style::default().bg(Color::Red).fg(Color::White),
-        Mode::Insert => Style::default().bg(Color::White).fg(Color::Black),
+    .set_style(match app.input.mode {
+        InputMode::Normal => Style::default().bg(Color::Blue).fg(Color::Black),
+        InputMode::Insert => Style::default().bg(Color::White).fg(Color::Black),
     })
 }
 
 fn list(app: &App) -> List {
     let mut items = Vec::new();
-    for item in &app.items {
+    for item in &app.list.items {
         let list_item = match item.complete {
             true => ListItem::new(format!("[x] {}", item.content))
                 .set_style(Style::default().fg(Color::Blue).set_style(Modifier::BOLD)),
@@ -52,20 +49,19 @@ fn list(app: &App) -> List {
 
     List::new(items)
         .style(Style::default().fg(Color::White))
-        .highlight_style(match app.mode {
-            Mode::Normal => Style::default()
+        .highlight_style(match app.input.mode {
+            InputMode::Normal => Style::default()
                 .fg(Color::Black)
                 .bg(Color::White)
                 .set_style(Modifier::BOLD),
-            Mode::Confirmation => Style::default(),
-            Mode::Insert => Style::default(),
+            InputMode::Insert => Style::default(),
         })
         .direction(ListDirection::BottomToTop)
 }
 
 fn list_state(app: &App) -> ListState {
     let mut state = LIST_STATE.clone();
-    state.select(Some(app.selected_item));
+    state.select(Some(app.list.selected_item));
     state
 }
 
@@ -76,13 +72,12 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     frame.render_widget(status_line(&app), status_area);
     frame.render_stateful_widget(list(&app), list_area, &mut list_state);
 
-    match app.mode {
-        Mode::Normal => {}
-        Mode::Confirmation => {}
-        Mode::Insert => {
+    match app.input.mode {
+        InputMode::Normal => {}
+        InputMode::Insert => {
             #[allow(clippy::cast_possible_truncation)]
             frame.set_cursor(
-                status_area.x + app.cursor_position as u16 + 3,
+                status_area.x + app.input.cursor_position as u16 + 7,
                 status_area.y,
             );
         }

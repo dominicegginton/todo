@@ -9,17 +9,12 @@ use todo::tui::Tui;
 
 #[derive(FromArgs)]
 /// A suckless todo app.
-struct AppArgs {
-    #[argh(option, short = 'l', default = "false")]
-    /// use a local list.
-    local_list: bool,
-}
+struct AppArgs {}
 
 fn main() -> AppResult<()> {
-    let args: AppArgs = argh::from_env();
+    let _: AppArgs = argh::from_env();
     let mut app = App::new();
-    app.local_list = args.local_list;
-    app.read_items_from_file();
+    app.list.items = app.file.read_items_from_file()?;
 
     let backend = CrosstermBackend::new(io::stderr());
     let terminal = Terminal::new(backend)?;
@@ -30,7 +25,7 @@ fn main() -> AppResult<()> {
     while app.running {
         tui.draw(&mut app)?;
         match tui.events.next()? {
-            Event::Tick => app.tick(),
+            Event::Tick => {}
             Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
