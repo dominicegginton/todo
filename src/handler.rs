@@ -21,29 +21,25 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.list.toggle_selected_item();
             }
             KeyCode::Char('e') => {
-                let selected_item = match app.list.selected_item {
-                    0 => return Ok(()),
-                    _ => app.list.selected_item,
-                };
-
-                app.input.input = app.list.items[selected_item].content.clone();
+                app.input.set_content(app.list.get_selected_item().unwrap().content.clone());
                 app.input.mode = InputMode::Insert;
             }
-            KeyCode::Char('D') => {
-                app.list.remove_selected_item();
+            KeyCode::Char('d') => {
+                app.input.mode = InputMode::Remove;
             }
-            KeyCode::Esc | KeyCode::Char('q') => {
-                app.file.write_items_to_file(&app.list.items)?;
-                app.running = false;
-            }
-            KeyCode::F(1) => {
+            KeyCode::Char('G') => {
                 app.file.write_items_to_file(&app.list.items)?;
                 app.list.clear_selection();
+                app.list.selected = true;
                 app.file.mode = match app.file.mode {
                     FileMode::Local => FileMode::Global,
                     FileMode::Global => FileMode::Local,
                 };
                 app.list.items = app.file.read_items_from_file()?;
+            }
+            KeyCode::Esc | KeyCode::Char('q') => {
+                app.file.write_items_to_file(&app.list.items)?;
+                app.running = false;
             }
             _ => {}
         },
@@ -53,13 +49,14 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 if input_string.is_empty() {
                     return Ok(());
                 }
-                if app.list.selected_item > 0 {
+                if app.list.selected {
                     app.list.edit_selected_item(input_string);
                 } else {
                     app.list.add_item(input_string);
                 }
                 app.input.clear();
                 app.input.reset_cursor();
+                app.input.mode = InputMode::Normal;
             }
             KeyCode::Char(to_insert) => {
                 app.input.enter_char(to_insert);
@@ -74,11 +71,27 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.input.move_cursor_right();
             }
             KeyCode::Esc => {
+                app.input.input = match app.list.selected {
+                    true => "".to_string(),
+                    false => app.input.input.clone(),
+                };
                 app.input.mode = InputMode::Normal;
+                app.list.selected = true;
             }
             _ => {}
         },
         InputMode::Insert => {}
+        InputMode::Remove if key_event.kind == KeyEventKind::Press => match key_event.code {
+            KeyCode::Char('y') => {
+                app.list.remove_selected_item();
+                app.input.mode = InputMode::Normal;
+            }
+            KeyCode::Char('n') => {
+                app.input.mode = InputMode::Normal;
+            }
+            _ => {}
+        },
+        _ => {}
     }
     Ok(())
 }

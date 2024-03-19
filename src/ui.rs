@@ -1,5 +1,5 @@
-use crate::{app::App, file::FileMode};
 use crate::input::InputMode;
+use crate::{app::App, file::FileMode};
 use once_cell::sync::Lazy;
 use ratatui::{
     prelude::*,
@@ -17,7 +17,7 @@ fn layout() -> Layout {
 fn status_line(app: &App) -> Paragraph {
     let file_mode = match app.file.mode {
         FileMode::Local => "L",
-        FileMode::Global => "G"
+        FileMode::Global => "G",
     };
 
     Paragraph::new(match app.input.mode {
@@ -28,11 +28,16 @@ fn status_line(app: &App) -> Paragraph {
             };
             format!(" {} | {} {}", file_mode, cursor, app.input.input)
         }
+        InputMode::Remove => format!(" {} | Remove item? (y/n)", file_mode),
         _ => format!(" {}", file_mode),
     })
     .set_style(match app.input.mode {
         InputMode::Normal => Style::default().bg(Color::Blue).fg(Color::Black),
         InputMode::Insert => Style::default().bg(Color::White).fg(Color::Black),
+        InputMode::Remove => Style::default()
+            .bg(Color::Red)
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD),
     })
 }
 
@@ -54,6 +59,10 @@ fn list(app: &App) -> List {
                 .fg(Color::Black)
                 .bg(Color::White)
                 .set_style(Modifier::BOLD),
+            InputMode::Remove => Style::default()
+                .fg(Color::White)
+                .bg(Color::Red)
+                .set_style(Modifier::BOLD),
             InputMode::Insert => Style::default(),
         })
         .direction(ListDirection::BottomToTop)
@@ -61,7 +70,9 @@ fn list(app: &App) -> List {
 
 fn list_state(app: &App) -> ListState {
     let mut state = LIST_STATE.clone();
-    state.select(Some(app.list.selected_item));
+    if app.list.selected {
+        state.select(Some(app.list.selected_item));
+    }
     state
 }
 
@@ -73,7 +84,6 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     frame.render_stateful_widget(list(&app), list_area, &mut list_state);
 
     match app.input.mode {
-        InputMode::Normal => {}
         InputMode::Insert => {
             #[allow(clippy::cast_possible_truncation)]
             frame.set_cursor(
@@ -81,5 +91,6 @@ pub fn render(app: &mut App, frame: &mut Frame) {
                 status_area.y,
             );
         }
+        _ => {}
     }
 }

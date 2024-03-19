@@ -1,6 +1,7 @@
 pub enum InputMode {
     Normal,
     Insert,
+    Remove,
 }
 
 pub struct Input {
@@ -43,6 +44,11 @@ impl Input {
             self.input = before_char_to_delete.chain(after_char_to_delete).collect();
             self.move_cursor_left();
         }
+    }
+
+    pub fn set_content(&mut self, new_content: String) {
+        self.input = new_content;
+        self.cursor_position = self.input.len();
     }
 
     pub fn reset_cursor(&mut self) {

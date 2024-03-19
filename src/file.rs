@@ -1,8 +1,5 @@
 use crate::item::Item;
-use home;
-use std::env;
-use std::error;
-use std::fs;
+use std::{env, error, fs};
 
 static FILE_NAME: &str = "todo.json";
 
@@ -23,42 +20,31 @@ impl File {
     }
 
     pub fn read_items_from_file(&self) -> Result<Vec<Item>, Box<dyn error::Error>> {
-        let file = match self.mode {
-            FileMode::Local => {
-                let mut path = env::current_dir()?;
-                path.push(FILE_NAME);
-                fs::read_to_string(path)?
-            }
-            FileMode::Global => match home::home_dir() {
-                Some(path) => {
-                    let mut path = path;
-                    path.push(FILE_NAME);
-                    fs::read_to_string(path)?
-                }
-                None => return Err("Could not find home directory".into()),
-            },
-        };
-        let items: Vec<Item> = serde_json::from_str(&file)?;
+        let file = fs::read_to_string(self.file_path());
+        if file.is_err() {
+            return Ok(Vec::new());
+        }
+        let items: Vec<Item> = serde_json::from_str(&file.unwrap_or_default())?;
         Ok(items)
     }
 
     pub fn write_items_to_file(&self, items: &Vec<Item>) -> Result<(), Box<dyn error::Error>> {
-        let file = serde_json::to_string_pretty(items)?;
-        match self.mode {
-            FileMode::Local => {
-                let mut path = env::current_dir()?;
-                path.push(FILE_NAME);
-                fs::write(path, file)?;
-            }
-            FileMode::Global => match home::home_dir() {
-                Some(path) => {
-                    let mut path = path;
-                    path.push(FILE_NAME);
-                    fs::write(path, file)?;
-                }
-                None => return Err("Could not find home directory".into()),
-            },
-        }
+        let items_json = serde_json::to_string(&items)?;
+        fs::write(self.file_path(), items_json)?;
         Ok(())
+    }
+
+    fn file_path(&self) -> String {
+        match self.mode {
+            FileMode::Local => format!("./{}", FILE_NAME),
+            FileMode::Global => format!(
+                "{}/{}",
+                match env::var("HOME") {
+                    Ok(val) => val,
+                    Err(_) => "".to_string(),
+                },
+                FILE_NAME
+            ),
+        }
     }
 }
