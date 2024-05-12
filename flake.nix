@@ -1,50 +1,17 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+  inputs.flake-utils.url = "github:numtide/flake-utils";
 
   outputs = {
     self,
     nixpkgs,
-  }: let
-    supportedSystems = ["x86_64-linux" "i686-linux" "x86_64-darwin"];
-
-    forAllSystems = f:
-      nixpkgs.lib.genAttrs supportedSystems (system: f system);
-
-    nixpkgsFor = forAllSystems (system:
-      import nixpkgs {
-        inherit system;
-
-        overlays = [self.overlays.default];
-      });
-  in {
-    overlays = {
-      default = final: prev: let
-        pkgs = final.pkgs;
-        rustPlatform = final.rustPlatform;
-      in {
-        todo = import ./default.nix {inherit pkgs rustPlatform;};
-      };
-    };
-
-    packages = forAllSystems (system: let
-      pkgs = nixpkgsFor.${system};
+    flake-utils,
+  }:
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import nixpkgs {inherit system;};
     in {
-      inherit (pkgs) todo;
-
-      default = pkgs.todo;
+      formatter = pkgs.alejandra;
+      packages.default = import ./default.nix {inherit pkgs;};
+      devShells.default = import ./shell.nix {inherit pkgs;};
     });
-
-    formatter = forAllSystems (
-      system: let
-        pkgs = nixpkgsFor.${system};
-      in
-        pkgs.alejandra
-    );
-
-    devShells = forAllSystems (system: let
-      pkgs = nixpkgsFor.${system};
-    in {
-      default = import ./shell.nix {inherit pkgs;};
-    });
-  };
 }

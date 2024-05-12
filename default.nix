@@ -1,6 +1,6 @@
 {
-  pkgs,
-  rustPlatform,
+  pkgs ? import <nixpkgs> {},
+  rustPlatform ? pkgs.rustPlatform,
   ...
 }:
 with rustPlatform;
@@ -10,9 +10,8 @@ with rustPlatform;
     version = "0.1.0";
     src = ./.;
     cargoSha256 = "sha256-cPJ+KRTRN52LQnOzsnEhURxysBzrIKXJs41rf1WyxSQ=";
-
     nativeBuildInputs = with pkgs; [
-      rustc # rust compiler
-      cargo # cargo package manager
+      rustc
+      cargo
     ];
   }
