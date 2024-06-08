@@ -1,6 +1,6 @@
-{pkgs, ...}:
+{pkgs}:
 with pkgs;
-  mkShell rec {
+  mkShell {
     nativeBuildInputs = with pkgs; [
       rustc
       cargo
