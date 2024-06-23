@@ -9,7 +9,7 @@ in
     pname =  cargoToml.package.name;
     version = cargoToml.package.version;
     src = cleanSource ./.;
-    cargoSha256 = "sha256-cPJ+KRTRN52LQnOzsnEhURxysBzrIKXJs41rf1WyxSQ=";
+    cargoSha256 = "sha256-ow2im5UdpyiUhXqdlUqTf1AQYx1ElGQKlATGdujLQOc=";
     nativeBuildInputs = with pkgs; [
       rustc
       cargo
